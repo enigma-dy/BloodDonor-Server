@@ -1,0 +1,233 @@
+import Donation from "../models/Donation.js";
+import User from "../models/User.js";
+import Hospital from "../models/Hospital.js";
+import Notification from "../models/Notification.js";
+import ErrorResponse from "../utils/errorResponse.js";
+import sendNotification from "../services/notification.service.js";
+import { DonationQueryBuilder } from "../utils/donationQueryBuilder.js";
+
+export const getDonations = async (req, res, next) => {
+  try {
+    const {
+      donor,
+      hospital,
+      bloodType,
+      status,
+      minQuantity,
+      maxQuantity,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    } = req.query;
+
+    const donations = await new DonationQueryBuilder()
+      .byDonor(donor)
+      .byHospital(hospital)
+      .byBloodType(bloodType)
+      .byStatus(status)
+      .minQuantity(minQuantity)
+      .maxQuantity(maxQuantity)
+      .byDateRange(startDate, endDate)
+      .sort(sortBy, sortOrder)
+      .withDetails()
+      .paginate(parseInt(page), parseInt(limit))
+      .execute();
+
+    res.status(200).json({
+      success: true,
+      count: donations.length,
+      data: donations,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getDonation = async (req, res, next) => {
+  try {
+    const donation = await Donation.findById(req.params.id)
+      .populate({
+        path: "donor",
+        select: "name bloodType",
+      })
+      .populate({
+        path: "hospital",
+        select: "name address",
+      });
+
+    if (!donation) {
+      return next(
+        new ErrorResponse(
+          `No donation found with the id of ${req.params.id}`,
+          404
+        )
+      );
+    }
+
+    if (
+      donation.donor._id.toString() !== req.user.id &&
+      req.user.role !== "admin"
+    ) {
+      return next(
+        new ErrorResponse(
+          `User ${req.user.id} is not authorized to access this donation`,
+          401
+        )
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      data: donation,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createDonation = async (req, res, next) => {
+  try {
+    req.body.hospital = req.params.hospitalId;
+    req.body.donor = req.user.id;
+
+    const hospital = await Hospital.findById(req.params.hospitalId);
+    if (!hospital) {
+      return next(new ErrorResponse(`Hospital not found`, 404));
+    }
+
+    const donor = await User.findById(req.user.id);
+
+    if (donor.lastDonationDate) {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      if (new Date(donor.lastDonationDate) > threeMonthsAgo) {
+        const nextDonationDate = new Date(donor.lastDonationDate);
+        nextDonationDate.setMonth(nextDonationDate.getMonth() + 3);
+
+        if (new Date(req.body.donationDate) <= new Date()) {
+          return next(
+            new ErrorResponse(
+              `You must wait until ${nextDonationDate.toLocaleDateString()} to donate again. ` +
+                `Last donation was on ${new Date(
+                  donor.lastDonationDate
+                ).toLocaleDateString()}`,
+              400
+            )
+          );
+        }
+
+        if (new Date(req.body.donationDate) < nextDonationDate) {
+          return next(
+            new ErrorResponse(
+              `Earliest available donation date is ${nextDonationDate.toLocaleDateString()}`,
+              400
+            )
+          );
+        }
+      }
+    }
+
+    //  cooldown period has passed,
+    const donation = await Donation.create(req.body);
+
+    donor.lastDonationDate = donation.donationDate;
+    await donor.save();
+
+    await sendNotification({
+      user: hospital.createdBy,
+      message: `New donation recorded for ${donor.name}`,
+      type: "donation",
+      relatedEntity: donation._id,
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: donation,
+    });
+  } catch (err) {
+    console.error("Donation creation error:", err.message);
+    return next(err);
+  }
+};
+
+export const updateDonation = async (req, res, next) => {
+  try {
+    let donation = await Donation.findById(req.params.id);
+
+    if (!donation) {
+      return next(
+        new ErrorResponse(`No donation with the id of ${req.params.id}`, 404)
+      );
+    }
+
+    if (
+      donation.donor.toString() !== req.user.id &&
+      req.user.role !== "admin"
+    ) {
+      return next(
+        new ErrorResponse(
+          `User ${req.user.id} is not authorized to update this donation`,
+          401
+        )
+      );
+    }
+
+    donation = await Donation.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (req.body.status === "completed") {
+      const hospital = await Hospital.findById(donation.hospital);
+      hospital.bloodBank.set(
+        donation.bloodType,
+        hospital.bloodBank.get(donation.bloodType) + donation.quantity
+      );
+      await hospital.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      data: donation,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteDonation = async (req, res, next) => {
+  try {
+    const donation = await Donation.findById(req.params.id);
+
+    if (!donation) {
+      return next(
+        new ErrorResponse(`No donation with the id of ${req.params.id}`, 404)
+      );
+    }
+
+    if (
+      donation.donor.toString() !== req.user.id &&
+      req.user.role !== "admin"
+    ) {
+      return next(
+        new ErrorResponse(
+          `User ${req.user.id} is not authorized to delete this donation`,
+          401
+        )
+      );
+    }
+
+    await donation.remove();
+
+    res.status(200).json({
+      success: true,
+      data: {},
+    });
+  } catch (err) {
+    next(err);
+  }
+};

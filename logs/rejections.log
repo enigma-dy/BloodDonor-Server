@@ -1,0 +1,14 @@
+2025-04-23 15:52:41 [31merror[39m: TypeError: Cannot read properties of undefined (reading 'id')
+    at getMe (file:///C:/Users/Enigma/Downloads/BloodDonorServer/controllers/auth.controller.js:84:45)
+    at Layer.handle [as handle_request] (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\index.js:175:3)
+    at router (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\router\index.js:47:12)
+2025-04-23 16:05:04 [31merror[39m: ReferenceError: ms is not defined
+    at sendTokenResponse (file:///C:/Users/Enigma/Downloads/BloodDonorServer/controllers/auth.controller.js:134:40)
+    at login (file:///C:/Users/Enigma/Downloads/BloodDonorServer/controllers/auth.controller.js:80:3)
