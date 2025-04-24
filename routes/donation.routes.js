@@ -7,13 +7,22 @@ import {
   deleteDonation,
 } from "../controllers/donation.controller.js";
 import { protect, authorize } from "../middlewares/auth.js";
+import { createDonationValidator } from "../validators/reqValidator.js";
+import { handleValidationErrors } from "../middlewares/validation-error.js";
 
 const router = express.Router({ mergeParams: true });
 
+router.route("/").get(getDonations);
+
 router
-  .route("/")
-  .get(getDonations)
-  .post(protect, authorize("donor"), createDonation);
+  .route("/:hospitalId")
+  .post(
+    protect,
+    createDonationValidator,
+    handleValidationErrors,
+    authorize("donor"),
+    createDonation
+  );
 
 router
   .route("/:id")

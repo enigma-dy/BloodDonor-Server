@@ -6,7 +6,6 @@ import ErrorResponse from "../utils/errorResponse.js"; // make sure path is corr
 dotenv.config();
 
 const jwtSecret = process.env.JWT_SECRET;
-console.log(jwtSecret);
 
 export const protect = async (req, res, next) => {
   let token;

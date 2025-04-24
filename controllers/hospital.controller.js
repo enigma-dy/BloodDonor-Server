@@ -1,6 +1,7 @@
 import Hospital from "../models/Hospital.js";
 import User from "../models/User.js";
 import ErrorResponse from "../utils/errorResponse.js";
+import axios from "axios";
 
 export const getHospitals = async (req, res, next) => {
   try {
@@ -94,16 +95,40 @@ export const createHospital = async (req, res, next) => {
   try {
     req.body.createdBy = req.user.id;
 
-    req.body.location = {
-      type: "Point",
-      coordinates: [req.body.longitude, req.body.latitude],
-    };
+    if (!req.body.latitude || !req.body.longitude) {
+      const { address, state, lga } = req.body;
 
-    const existingHospistal = await Hospital.findOne({
+      const response = await axios.get(process.env.GEOCODING_API_URL, {
+        params: {
+          q: `${address}, ${state}, ${lga}`,
+          key: process.env.GEOCODING_API_KEY,
+        },
+      });
+
+      if (response.data.results.length === 0) {
+        return next(
+          new ErrorResponse("Unable to find coordinates for the address", 400)
+        );
+      }
+
+      const { lat, lng } = response.data.results[0].geometry;
+
+      req.body.location = {
+        type: "Point",
+        coordinates: [lng, lat],
+      };
+    } else {
+      req.body.location = {
+        type: "Point",
+        coordinates: [req.body.longitude, req.body.latitude],
+      };
+    }
+
+    const existingHospital = await Hospital.findOne({
       email: req.body.email,
-    }).select("+password");
+    }).select("-password");
 
-    if (existingHospistal) {
+    if (existingHospital) {
       return next(
         new ErrorResponse("This Email has already been registered", 401)
       );
@@ -130,7 +155,6 @@ export const updateHospital = async (req, res, next) => {
       );
     }
 
-    // Make sure user is hospital owner or admin
     if (
       hospital.createdBy.toString() !== req.user.id &&
       req.user.role !== "admin"
@@ -143,12 +167,37 @@ export const updateHospital = async (req, res, next) => {
       );
     }
 
-    // Update location if provided
     if (req.body.longitude && req.body.latitude) {
       req.body.location = {
         type: "Point",
         coordinates: [req.body.longitude, req.body.latitude],
       };
+    }
+
+    if (!req.body.longitude || !req.body.latitude) {
+      const { address, state, lga } = req.body;
+
+      if (address || state || lga) {
+        const response = await axios.get(GEOCODING_API_URL, {
+          params: {
+            q: `${address}, ${state}, ${lga}`,
+            key: GEOCODING_API_KEY,
+          },
+        });
+
+        if (response.data.results.length === 0) {
+          return next(
+            new ErrorResponse("Unable to find coordinates for the address", 400)
+          );
+        }
+
+        const { lat, lng } = response.data.results[0].geometry;
+
+        req.body.location = {
+          type: "Point",
+          coordinates: [lng, lat],
+        };
+      }
     }
 
     hospital = await Hospital.findByIdAndUpdate(req.params.id, req.body, {

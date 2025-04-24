@@ -16,6 +16,7 @@ import hospitalRoutes from "./routes/hospital.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
 import donationRouter from "./routes/donation.routes.js";
+import requestRouter from "./routes/request.routes.js";
 
 // Error handler
 import errorHandler from "./middlewares/error.js";
@@ -66,6 +67,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/hospitals", hospitalRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/feedback", feedbackRoutes);
+app.use("/api/v1/request", requestRouter);
 app.use("/api/v1/donation", donationRouter);
 
 // Error handler middleware

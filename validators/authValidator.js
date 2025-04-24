@@ -1,34 +1,45 @@
 import { body } from "express-validator";
 
 export const validateRegister = [
-  body("name").notEmpty().withMessage("Name is required"),
-  body("email").isEmail().withMessage("Valid email is required"),
+  body("name").notEmpty().trim().withMessage("Name is required"),
+  body("email")
+    .isEmail()
+    .normalizeEmail()
+    .withMessage("Valid email is required"),
   body("password")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters"),
-  body("bloodType").notEmpty().withMessage("Blood type is required"),
-  body("phone").notEmpty().withMessage("Phone is required"),
+  body("bloodType")
+    .isIn(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+    .withMessage("Valid blood type is required"),
+  body("phone")
+    .notEmpty()
+    .isMobilePhone("any")
+    .withMessage("Valid phone number is required"),
+
+  // Location validation
   body("location.latitude")
+    .if(body("location").exists())
     .isFloat({ min: -90, max: 90 })
-    .withMessage("Valid latitude is required"),
+    .withMessage("Valid latitude (-90 to 90) is required"),
   body("location.longitude")
+    .if(body("location").exists())
     .isFloat({ min: -180, max: 180 })
-    .withMessage("Valid longitude is required"),
+    .withMessage("Valid longitude (-180 to 180) is required"),
+
+  body().custom((value, { req }) => {
+    if (!req.body.location?.latitude || !req.body.location?.longitude) {
+      if (!req.body.address || !req.body.state || !req.body.lga) {
+        throw new Error("Either coordinates or full address is required");
+      }
+    }
+    return true;
+  }),
 ];
 
 export const validateRegisterStaff = [
-  body("name").notEmpty().withMessage("Name is required"),
-  body("email").isEmail().withMessage("Valid email is required"),
-  body("role").notEmpty().withMessage("Role email is required"),
-  body("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters"),
-  body("bloodType").notEmpty().withMessage("Blood type is required"),
-  body("phone").notEmpty().withMessage("Phone is required"),
-  body("location.latitude")
-    .isFloat({ min: -90, max: 90 })
-    .withMessage("Valid latitude is required"),
-  body("location.longitude")
-    .isFloat({ min: -180, max: 180 })
-    .withMessage("Valid longitude is required"),
+  ...validateRegister,
+  body("role")
+    .isIn(["admin", "staff", "hospital_admin"])
+    .withMessage("Valid role is required"),
 ];

@@ -1,0 +1,36 @@
+2025-04-24 09:28:34 [31merror[39m: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1912:16)
+    at listenInCluster (node:net:1969:12)
+    at Server.listen (node:net:2074:7)
+    at Function.listen (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\application.js:635:24)
+    at file:///C:/Users/Enigma/Downloads/BloodDonorServer/server.js:10:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:547:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)
+2025-04-24 09:29:15 [31merror[39m: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1912:16)
+    at listenInCluster (node:net:1969:12)
+    at Server.listen (node:net:2074:7)
+    at Function.listen (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\application.js:635:24)
+    at file:///C:/Users/Enigma/Downloads/BloodDonorServer/server.js:10:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:547:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)
+2025-04-24 09:40:34 [31merror[39m: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1912:16)
+    at listenInCluster (node:net:1969:12)
+    at Server.listen (node:net:2074:7)
+    at Function.listen (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\application.js:635:24)
+    at file:///C:/Users/Enigma/Downloads/BloodDonorServer/server.js:10:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:547:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)
+2025-04-24 09:41:00 [31merror[39m: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1912:16)
+    at listenInCluster (node:net:1969:12)
+    at Server.listen (node:net:2074:7)
+    at Function.listen (C:\Users\Enigma\Downloads\BloodDonorServer\node_modules\express\lib\application.js:635:24)
+    at file:///C:/Users/Enigma/Downloads/BloodDonorServer/server.js:10:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:547:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)

@@ -1,17 +1,15 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-
-dotenv.config();
 
 const UserSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: [true, "Please provide name"],
+      trim: true,
       minlength: 3,
       maxlength: 50,
     },
@@ -23,11 +21,17 @@ const UserSchema = new mongoose.Schema(
         validator: validator.isEmail,
         message: "Please provide valid email",
       },
+      lowercase: true,
+      trim: true,
+    },
+    lastDonationDate: {
+      type: Date,
     },
     password: {
       type: String,
       required: [true, "Please provide password"],
       minlength: 6,
+      select: false,
     },
     role: {
       type: String,
@@ -41,10 +45,6 @@ const UserSchema = new mongoose.Schema(
         return this.role === "donor";
       },
     },
-    isAvailable: {
-      type: Boolean,
-      default: true,
-    },
     location: {
       type: {
         type: String,
@@ -54,36 +54,57 @@ const UserSchema = new mongoose.Schema(
       coordinates: {
         type: [Number],
         required: true,
+        validate: {
+          validator: function (coords) {
+            return (
+              coords.length === 2 &&
+              !isNaN(coords[0]) &&
+              !isNaN(coords[1]) &&
+              coords[0] >= -180 &&
+              coords[0] <= 180 &&
+              coords[1] >= -90 &&
+              coords[1] <= 90
+            );
+          },
+          message: "Invalid coordinates",
+        },
       },
     },
     phone: {
       type: String,
       required: [true, "Please provide phone number"],
+      validate: {
+        validator: function (v) {
+          return /^\+?[1-9]\d{1,14}$/.test(v);
+        },
+        message: "Invalid phone number",
+      },
     },
-    lastDonationDate: {
-      type: Date,
-    },
-    verificationToken: String,
     isVerified: {
       type: Boolean,
       default: false,
     },
+    verificationToken: String,
     verified: Date,
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
 UserSchema.index({ location: "2dsphere" });
+UserSchema.index({ email: 1 }, { unique: true });
 
-UserSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
 });
 
 UserSchema.methods.comparePassword = async function (candidatePassword) {
-  const isMatch = await bcrypt.compare(candidatePassword, this.password);
-  return isMatch;
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 UserSchema.methods.getSignedJwtToken = function () {
@@ -94,11 +115,8 @@ UserSchema.methods.getSignedJwtToken = function () {
 
 UserSchema.methods.getEmailVerificationToken = function () {
   const verificationToken = crypto.randomBytes(20).toString("hex");
-
   this.verificationToken = verificationToken;
-
   return verificationToken;
 };
-const User = mongoose.model("User", UserSchema);
 
-export default User;
+export default mongoose.model("User", UserSchema);

@@ -16,6 +16,7 @@ import {
 } from "../validators/authValidator.js";
 import { handleValidationErrors } from "../middlewares/validation-error.js";
 import { authorize } from "../middlewares/auth.js";
+import upload from "../utils/upload.js";
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.post("/staff/login", loginStaff);
 router.post("/login", login);
 router.get("/verify/:verificationToken", verifyEmail);
 router.get("/me", protect, getMe);
-router.put("/updatedetails", protect, updateDetails);
+router.put("/update", protect, upload.single("profilePic"), updateDetails);
 router.put("/updatepassword", protect, updatePassword);
 router.patch("/users/assign-role", protect, authorize("admin"), assignRole);
 

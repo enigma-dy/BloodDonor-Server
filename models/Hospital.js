@@ -19,6 +19,14 @@ const HospitalSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please provide address"],
     },
+    state: {
+      type: String,
+      required: [true, "Please provide state"],
+    },
+    lga: {
+      type: String,
+      required: [true, "Please provide local government area (LGA)"],
+    },
     location: {
       type: {
         type: String,

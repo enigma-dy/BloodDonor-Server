@@ -22,6 +22,8 @@ router
   .put(protect, authorize("hospital", "admin"), updateRequest)
   .delete(protect, authorize("hospital", "admin"), deleteRequest);
 
-router.route("/:id/fulfill").put(protect, authorize("donor"), fulfillRequest);
+router
+  .route("/:id/fulfill")
+  .put(protect, authorize("hospital", "admin"), fulfillRequest);
 
 export default router;

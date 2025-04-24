@@ -92,6 +92,7 @@ export const createDonation = async (req, res, next) => {
   try {
     req.body.hospital = req.params.hospitalId;
     req.body.donor = req.user.id;
+    req.body.donationDate = new Date();
 
     const hospital = await Hospital.findById(req.params.hospitalId);
     if (!hospital) {
@@ -108,30 +109,18 @@ export const createDonation = async (req, res, next) => {
         const nextDonationDate = new Date(donor.lastDonationDate);
         nextDonationDate.setMonth(nextDonationDate.getMonth() + 3);
 
-        if (new Date(req.body.donationDate) <= new Date()) {
-          return next(
-            new ErrorResponse(
-              `You must wait until ${nextDonationDate.toLocaleDateString()} to donate again. ` +
-                `Last donation was on ${new Date(
-                  donor.lastDonationDate
-                ).toLocaleDateString()}`,
-              400
-            )
-          );
-        }
-
-        if (new Date(req.body.donationDate) < nextDonationDate) {
-          return next(
-            new ErrorResponse(
-              `Earliest available donation date is ${nextDonationDate.toLocaleDateString()}`,
-              400
-            )
-          );
-        }
+        return next(
+          new ErrorResponse(
+            `You must wait until ${nextDonationDate.toLocaleDateString()} to donate again. ` +
+              `Last donation was on ${new Date(
+                donor.lastDonationDate
+              ).toLocaleDateString()}`,
+            400
+          )
+        );
       }
     }
 
-    //  cooldown period has passed,
     const donation = await Donation.create(req.body);
 
     donor.lastDonationDate = donation.donationDate;
