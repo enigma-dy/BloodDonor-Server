@@ -8,7 +8,7 @@ export const register = async (req, res, next) => {
   const { name, email, password, bloodType, phone,state,lga } = req.body;
 
   try {
-    // Check for existing user
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new ErrorResponse("Email already registered", 400));
@@ -25,8 +25,8 @@ export const register = async (req, res, next) => {
       state,
       lga,
     });
-    // Generate verification token
-    const verificationToken = user.getEmailVerificationToken();
+
+  const verificationToken = user.getEmailVerificationToken();
     await user.save({ validateBeforeSave: false });
 
     // Send verification email
@@ -127,71 +127,6 @@ export const registerStaff = async (req, res, next) => {
   }
 };
 
-// export const registerStaff = async (req, res, next) => {
-//   const { name, email, password, bloodType, phone, location, role } = req.body;
-
-//   const user = await User.findOne({ email }).select("+password");
-
-//   if (user) {
-//     return next(
-//       new ErrorResponse("This Email has already been registered", 401)
-//     );
-//   }
-//   try {
-//     if (role === "admin") {
-//       const adminExists = await User.findOne({ role: "admin" });
-//       if (adminExists) {
-//         return next(new ErrorResponse("Admin already exists", 400));
-//       }
-//     }
-
-//     const user = await User.create({
-//       name,
-//       email,
-//       password,
-//       bloodType,
-//       phone,
-//       role,
-//       location: {
-//         type: "Point",
-//         coordinates: [location.longitude, location.latitude],
-//       },
-//     });
-
-//     const verificationToken = user.getEmailVerificationToken();
-//     await user.save();
-
-//     const token = user.getSignedJwtToken();
-
-//     const verificationUrl = `${req.protocol}://${req.get(
-//       "host"
-//     )}/api/v1/auth/verifyemail/${verificationToken}`;
-
-//     const message = `You are receiving this email because you (or someone else) has registered an account with us. Please verify your email by clicking on the following link: \n\n ${verificationUrl}`;
-
-//     try {
-//       await sendEmail({
-//         email: user.email,
-//         subject: "Email Verification",
-//         message,
-//       });
-
-//       res.status(200).json({
-//         success: true,
-//         token,
-//         message: "Verification email sent",
-//         verificationUrl,
-//       });
-//     } catch (err) {
-//       user.verificationToken = undefined;
-//       await user.save();
-
-//       return next(new ErrorResponse("Email could not be sent", 500));
-//     }
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 
 export const login = async (req, res, next) => {
   const { email, password } = req.body;

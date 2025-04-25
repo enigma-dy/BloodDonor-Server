@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import User from "../models/User.js"; // make sure path is correct
-import ErrorResponse from "../utils/errorResponse.js"; // make sure path is correct
+import User from "../models/User.js";
+import ErrorResponse from "../utils/errorResponse.js"; 
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -59,13 +60,22 @@ export const authorize = (...roles) => {
 export const verifyEmail = async (req, res, next) => {
   try {
     const { verificationToken } = req.params;
-    const user = await User.findOne({ verificationToken });
+
+    // Hash the token to match the stored hash in the DB
+    const hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+
+    const user = await User.findOne({ 
+      emailVerificationToken: hashedToken,
+      emailVerificationTokenExpire: { $gt: Date.now() } // Check if token hasn't expired
+    });
 
     if (!user) {
-      return next(new ErrorResponse("Invalid verification token", 400));
+      return next(new ErrorResponse("Invalid or expired verification token", 400));
     }
 
-    user.verificationToken = "";
+    // Clear the token and mark as verified
+    user.emailVerificationToken = undefined;
+    user.emailVerificationTokenExpire = undefined;
     user.isVerified = true;
     user.verified = Date.now();
     await user.save();

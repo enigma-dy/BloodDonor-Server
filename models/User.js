@@ -77,8 +77,10 @@ UserSchema.methods.getSignedJwtToken = function () {
 
 UserSchema.methods.getEmailVerificationToken = function () {
   const verificationToken = crypto.randomBytes(20).toString("hex");
-  this.verificationToken = verificationToken;
-  return verificationToken;
+  this.emailVerificationToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+  this.emailVerificationTokenExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  return verificationToken; 
 };
+
 
 export default mongoose.model("User", UserSchema);
