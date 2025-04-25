@@ -5,7 +5,7 @@ import User from "../models/User.js";
 import axios from "axios";
 
 export const register = async (req, res, next) => {
-  const { name, email, password, bloodType, phone } = req.body;
+  const { name, email, password, bloodType, phone,state,lga } = req.body;
 
   try {
     // Check for existing user
@@ -14,37 +14,7 @@ export const register = async (req, res, next) => {
       return next(new ErrorResponse("Email already registered", 400));
     }
 
-    // Handle location data
-    let locationData;
-    if (req.body.location?.latitude && req.body.location?.longitude) {
-      locationData = {
-        type: "Point",
-        coordinates: [
-          parseFloat(req.body.location.longitude),
-          parseFloat(req.body.location.latitude),
-        ],
-      };
-    } else {
-      // Geocoding fallback
-      const { address, state, lga } = req.body;
-      const response = await axios.get(process.env.GEOCODING_API_URL, {
-        params: {
-          q: `${address}, ${state}, ${lga}`,
-          key: process.env.GEOCODING_API_KEY,
-        },
-      });
-
-      if (!response.data?.results?.length) {
-        return next(new ErrorResponse("Could not geocode address", 400));
-      }
-
-      const { lng, lat } = response.data.results[0].geometry;
-      locationData = {
-        type: "Point",
-        coordinates: [lng, lat],
-      };
-    }
-
+   
     // Create user
     const user = await User.create({
       name,
@@ -52,9 +22,9 @@ export const register = async (req, res, next) => {
       password,
       bloodType,
       phone,
-      location: locationData,
+      state,
+      lga,
     });
-
     // Generate verification token
     const verificationToken = user.getEmailVerificationToken();
     await user.save({ validateBeforeSave: false });

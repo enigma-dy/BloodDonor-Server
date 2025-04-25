@@ -20,7 +20,7 @@ import upload from "../utils/upload.js";
 
 const router = express.Router();
 
-router.post("/register", validateRegister, handleValidationErrors, register);
+router.post("/register", register);
 
 router.post(
   "/admin/register",

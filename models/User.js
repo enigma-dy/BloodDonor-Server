@@ -4,95 +4,57 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
-const UserSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, "Please provide name"],
-      trim: true,
-      minlength: 3,
-      maxlength: 50,
-    },
-    email: {
-      type: String,
-      unique: true,
-      required: [true, "Please provide email"],
-      validate: {
-        validator: validator.isEmail,
-        message: "Please provide valid email",
-      },
-      lowercase: true,
-      trim: true,
-    },
-    lastDonationDate: {
-      type: Date,
-    },
-    password: {
-      type: String,
-      required: [true, "Please provide password"],
-      minlength: 6,
-      select: false,
-    },
-    role: {
-      type: String,
-      enum: ["admin", "donor", "hospital", "recipient", "staff"],
-      default: "donor",
-    },
-    bloodType: {
-      type: String,
-      enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-      required: function () {
-        return this.role === "donor";
-      },
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        required: true,
-      },
-      coordinates: {
-        type: [Number],
-        required: true,
-        validate: {
-          validator: function (coords) {
-            return (
-              coords.length === 2 &&
-              !isNaN(coords[0]) &&
-              !isNaN(coords[1]) &&
-              coords[0] >= -180 &&
-              coords[0] <= 180 &&
-              coords[1] >= -90 &&
-              coords[1] <= 90
-            );
-          },
-          message: "Invalid coordinates",
-        },
-      },
-    },
-    phone: {
-      type: String,
-      required: [true, "Please provide phone number"],
-      validate: {
-        validator: function (v) {
-          return /^\+?[1-9]\d{1,14}$/.test(v);
-        },
-        message: "Invalid phone number",
-      },
-    },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    verificationToken: String,
-    verified: Date,
+
+
+const UserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, "Please add a name"],
   },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  }
-);
+  email: {
+    type: String,
+    required: [true, "Please add an email"],
+    unique: true,
+    lowercase: true,
+    match: [
+      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      "Please add a valid email",
+    ],
+  },
+  password: {
+    type: String,
+    required: [true, "Please add a password"],
+    minlength: 6,
+    select: false,
+  },
+  phone: {
+    type: String,
+    required: [true, "Please add a phone number"],
+  },
+  bloodType: {
+    type: String,
+    required: [true, "Please provide blood type"],
+  },
+  state: {
+    type: String,
+    required: [true, "Please provide state"],
+    trim: true,
+  },
+  lga: {
+    type: String,
+    required: [true, "Please provide LGA"],
+    trim: true,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  emailVerificationToken: String,
+  emailVerificationTokenExpire: Date,
+}, {
+  timestamps: true,
+});
+
 
 UserSchema.index({ location: "2dsphere" });
 UserSchema.index({ email: 1 }, { unique: true });
