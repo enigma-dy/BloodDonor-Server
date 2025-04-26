@@ -4,57 +4,65 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
-
-
-const UserSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Please add a name"],
+const UserSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Please add a name"],
+    },
+    email: {
+      type: String,
+      required: [true, "Please add an email"],
+      unique: true,
+      lowercase: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        "Please add a valid email",
+      ],
+    },
+    password: {
+      type: String,
+      required: [true, "Please add a password"],
+      minlength: 6,
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ["admin", "donor", "staff"],
+      default: "donor",
+    },
+    phone: {
+      type: String,
+      required: [true, "Please add a phone number"],
+    },
+    bloodType: {
+      type: String,
+      required: [true, "Please provide blood type"],
+    },
+    state: {
+      type: String,
+      required: [true, "Please provide state"],
+      trim: true,
+      lowercase: true,
+    },
+    lga: {
+      type: String,
+      required: [true, "Please provide LGA"],
+      trim: true,
+      lowercase: true,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    lastDonationDate: Date,
+    emailVerificationToken: String,
+    emailVerificationTokenExpire: Date,
   },
-  email: {
-    type: String,
-    required: [true, "Please add an email"],
-    unique: true,
-    lowercase: true,
-    match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-      "Please add a valid email",
-    ],
-  },
-  password: {
-    type: String,
-    required: [true, "Please add a password"],
-    minlength: 6,
-    select: false,
-  },
-  phone: {
-    type: String,
-    required: [true, "Please add a phone number"],
-  },
-  bloodType: {
-    type: String,
-    required: [true, "Please provide blood type"],
-  },
-  state: {
-    type: String,
-    required: [true, "Please provide state"],
-    trim: true,
-  },
-  lga: {
-    type: String,
-    required: [true, "Please provide LGA"],
-    trim: true,
-  },
-  isVerified: {
-    type: Boolean,
-    default: false,
-  },
-  emailVerificationToken: String,
-  emailVerificationTokenExpire: Date,
-}, {
-  timestamps: true,
-});
-
+  {
+    timestamps: true,
+  }
+);
 
 UserSchema.index({ location: "2dsphere" });
 UserSchema.index({ email: 1 }, { unique: true });
@@ -77,10 +85,12 @@ UserSchema.methods.getSignedJwtToken = function () {
 
 UserSchema.methods.getEmailVerificationToken = function () {
   const verificationToken = crypto.randomBytes(20).toString("hex");
-  this.emailVerificationToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+  this.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
   this.emailVerificationTokenExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-  return verificationToken; 
+  return verificationToken;
 };
-
 
 export default mongoose.model("User", UserSchema);

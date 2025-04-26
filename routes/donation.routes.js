@@ -14,15 +14,7 @@ const router = express.Router({ mergeParams: true });
 
 router.route("/").get(getDonations);
 
-router
-  .route("/:hospitalId")
-  .post(
-    protect,
-    createDonationValidator,
-    handleValidationErrors,
-    authorize("donor"),
-    createDonation
-  );
+router.route("/:hospitalId").post(protect, authorize("donor"), createDonation);
 
 router
   .route("/:id")

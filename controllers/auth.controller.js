@@ -2,20 +2,16 @@ import ms from "ms";
 import ErrorResponse from "../utils/errorResponse.js";
 import sendEmail from "../services/email.service.js";
 import User from "../models/User.js";
-import axios from "axios";
 
 export const register = async (req, res, next) => {
-  const { name, email, password, bloodType, phone,state,lga } = req.body;
+  const { name, email, password, bloodType, phone, state, lga } = req.body;
 
   try {
-
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new ErrorResponse("Email already registered", 400));
     }
 
-   
-    // Create user
     const user = await User.create({
       name,
       email,
@@ -26,7 +22,7 @@ export const register = async (req, res, next) => {
       lga,
     });
 
-  const verificationToken = user.getEmailVerificationToken();
+    const verificationToken = user.getEmailVerificationToken();
     await user.save({ validateBeforeSave: false });
 
     // Send verification email
@@ -34,6 +30,7 @@ export const register = async (req, res, next) => {
       "host"
     )}/api/v1/auth/verify/${verificationToken}`;
 
+    console.log(verificationUrl);
     await sendEmail({
       email: user.email,
       subject: "Verify Your Email",
@@ -51,10 +48,10 @@ export const register = async (req, res, next) => {
 };
 
 export const registerStaff = async (req, res, next) => {
-  const { name, email, password, bloodType, phone, role } = req.body;
+  const { name, email, password, bloodType, phone, role, state, lga } =
+    req.body;
 
   try {
-    // Admin validation
     if (role === "admin") {
       const adminExists = await User.findOne({ role: "admin" });
       if (adminExists) {
@@ -62,48 +59,17 @@ export const registerStaff = async (req, res, next) => {
       }
     }
 
-    // Reuse the location handling from register
-    let locationData;
-    if (req.body.location?.latitude && req.body.location?.longitude) {
-      locationData = {
-        type: "Point",
-        coordinates: [
-          parseFloat(req.body.location.longitude),
-          parseFloat(req.body.location.latitude),
-        ],
-      };
-    } else {
-      const { address, state, lga } = req.body;
-      const response = await axios.get(process.env.GEOCODING_API_URL, {
-        params: {
-          q: `${address}, ${state}, ${lga}`,
-          key: process.env.GEOCODING_API_KEY,
-        },
-      });
-
-      if (!response.data?.results?.length) {
-        return next(new ErrorResponse("Could not geocode address", 400));
-      }
-
-      const { lng, lat } = response.data.results[0].geometry;
-      locationData = {
-        type: "Point",
-        coordinates: [lng, lat],
-      };
-    }
-
-    // Create staff user
     const user = await User.create({
       name,
       email,
       password,
       bloodType,
       phone,
-      role,
-      location: locationData,
+      role: "staff",
+      state,
+      lga,
     });
 
-    // Verification email
     const verificationToken = user.getEmailVerificationToken();
     await user.save({ validateBeforeSave: false });
 
@@ -126,7 +92,6 @@ export const registerStaff = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const login = async (req, res, next) => {
   const { email, password } = req.body;
@@ -177,6 +142,10 @@ export const loginStaff = async (req, res, next) => {
     return next(new ErrorResponse("Please verify your email first", 401));
   }
 
+  if (user.role !== "admin" && user.role !== "staff") {
+    return next(new ErrorResponse("Unauthorized access", 403));
+  }
+
   sendTokenResponse(user, 200, res);
 };
 
@@ -212,6 +181,23 @@ export const getMe = async (req, res, next) => {
     success: true,
     data: user,
   });
+};
+
+export const getStaff = async (req, res, next) => {
+  try {
+    const staffMembers = await User.find({ role: "staff" });
+
+    if (!staffMembers.length) {
+      return next(new ErrorResponse("No staff found", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: staffMembers,
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 export const updateDetails = async (req, res, next) => {

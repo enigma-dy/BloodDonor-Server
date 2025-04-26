@@ -3,13 +3,12 @@ import Donation from "../models/Donation.js";
 export class DonationQueryBuilder {
   constructor() {
     this.query = Donation.find();
-    this.filters = {};
   }
 
   // Filter by donor ID
   byDonor(donorId) {
     if (donorId) {
-      this.filters.donor = donorId;
+      this.query = this.query.where("donor").equals(donorId);
     }
     return this;
   }
@@ -17,7 +16,7 @@ export class DonationQueryBuilder {
   // Filter by hospital ID
   byHospital(hospitalId) {
     if (hospitalId) {
-      this.filters.hospital = hospitalId;
+      this.query = this.query.where("hospital").equals(hospitalId);
     }
     return this;
   }
@@ -25,7 +24,7 @@ export class DonationQueryBuilder {
   // Filter by blood type
   byBloodType(bloodType) {
     if (bloodType) {
-      this.filters.bloodType = bloodType;
+      this.query = this.query.where("bloodType").equals(bloodType);
     }
     return this;
   }
@@ -33,7 +32,7 @@ export class DonationQueryBuilder {
   // Filter by status
   byStatus(status) {
     if (status) {
-      this.filters.status = status;
+      this.query = this.query.where("status").equals(status);
     }
     return this;
   }
@@ -41,7 +40,7 @@ export class DonationQueryBuilder {
   // Filter by minimum quantity
   minQuantity(quantity) {
     if (quantity) {
-      this.filters.quantity = { $gte: Number(quantity) };
+      this.query = this.query.where("quantity").gte(Number(quantity));
     }
     return this;
   }
@@ -49,25 +48,21 @@ export class DonationQueryBuilder {
   // Filter by maximum quantity
   maxQuantity(quantity) {
     if (quantity) {
-      this.filters.quantity = this.filters.quantity || {};
-      this.filters.quantity.$lte = Number(quantity);
+      this.query = this.query.where("quantity").lte(Number(quantity));
     }
     return this;
   }
 
-  // Filter by date range
-  byDateRange(startDate, endDate) {
-    if (startDate || endDate) {
-      this.filters.donationDate = {};
-      if (startDate) {
-        this.filters.donationDate.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        this.filters.donationDate.$lte = new Date(endDate);
-      }
-    }
-    return this;
+
+byDateRange(startDate, endDate) {
+  if (startDate || endDate) {
+    const dateQuery = {};
+    if (startDate) dateQuery.$gte = new Date(startDate);
+    if (endDate) dateQuery.$lte = new Date(endDate);
+    this.query = this.query.where("donationDate", dateQuery);
   }
+  return this;
+}
 
   // Sort results
   sort(sortBy, sortOrder = "asc") {
@@ -101,9 +96,6 @@ export class DonationQueryBuilder {
 
   // Execute the query
   async execute() {
-    if (Object.keys(this.filters).length > 0) {
-      this.query = this.query.where(this.filters);
-    }
     return await this.query.exec();
   }
 }

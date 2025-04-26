@@ -8,26 +8,36 @@ export const getHospitals = async (req, res, next) => {
     let query;
 
     const reqQuery = { ...req.query };
-
     const removeFields = ["select", "sort", "page", "limit"];
 
     removeFields.forEach((param) => delete reqQuery[param]);
 
     let queryStr = JSON.stringify(reqQuery);
-
     queryStr = queryStr.replace(
       /\b(gt|gte|lt|lte|in)\b/g,
       (match) => `$${match}`
     );
 
-    query = Hospital.find(JSON.parse(queryStr));
+    const parsedQuery = JSON.parse(queryStr);
 
-    // Select Fields
+    // Custom filters
+    if (req.query.lga) {
+      parsedQuery.lga = { $regex: req.query.lga, $options: "i" };
+    }
+
+    if (req.query.state) {
+      parsedQuery.state = { $regex: req.query.state, $options: "i" };
+    }
+
+    query = Hospital.find(parsedQuery);
+
+    // Select
     if (req.query.select) {
       const fields = req.query.select.split(",").join(" ");
       query = query.select(fields);
     }
 
+    // Sort
     if (req.query.sort) {
       const sortBy = req.query.sort.split(",").join(" ");
       query = query.sort(sortBy);
@@ -35,11 +45,12 @@ export const getHospitals = async (req, res, next) => {
       query = query.sort("-createdAt");
     }
 
+    // Pagination
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 25;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = await Hospital.countDocuments();
+    const total = await Hospital.countDocuments(parsedQuery);
 
     query = query.skip(startIndex).limit(limit);
 
@@ -48,17 +59,11 @@ export const getHospitals = async (req, res, next) => {
     const pagination = {};
 
     if (endIndex < total) {
-      pagination.next = {
-        page: page + 1,
-        limit,
-      };
+      pagination.next = { page: page + 1, limit };
     }
 
     if (startIndex > 0) {
-      pagination.prev = {
-        page: page - 1,
-        limit,
-      };
+      pagination.prev = { page: page - 1, limit };
     }
 
     res.status(200).json({
@@ -94,35 +99,6 @@ export const getHospital = async (req, res, next) => {
 export const createHospital = async (req, res, next) => {
   try {
     req.body.createdBy = req.user.id;
-
-    if (!req.body.latitude || !req.body.longitude) {
-      const { address, state, lga } = req.body;
-
-      const response = await axios.get(process.env.GEOCODING_API_URL, {
-        params: {
-          q: `${address}, ${state}, ${lga}`,
-          key: process.env.GEOCODING_API_KEY,
-        },
-      });
-
-      if (response.data.results.length === 0) {
-        return next(
-          new ErrorResponse("Unable to find coordinates for the address", 400)
-        );
-      }
-
-      const { lat, lng } = response.data.results[0].geometry;
-
-      req.body.location = {
-        type: "Point",
-        coordinates: [lng, lat],
-      };
-    } else {
-      req.body.location = {
-        type: "Point",
-        coordinates: [req.body.longitude, req.body.latitude],
-      };
-    }
 
     const existingHospital = await Hospital.findOne({
       email: req.body.email,

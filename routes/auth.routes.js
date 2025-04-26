@@ -8,6 +8,7 @@ import {
   registerStaff,
   assignRole,
   loginStaff,
+  getStaff,
 } from "../controllers/auth.controller.js";
 import { protect, verifyEmail } from "../middlewares/auth.js";
 import {
@@ -21,17 +22,12 @@ import upload from "../utils/upload.js";
 const router = express.Router();
 
 router.post("/register", register);
-
-router.post(
-  "/admin/register",
-  validateRegisterStaff,
-  handleValidationErrors,
-  authorize("admin"),
-  registerStaff
-);
-
-router.post("/staff/login", loginStaff);
 router.post("/login", login);
+
+router.get("/admin/staff", protect, authorize("admin", "staff"), getStaff);
+router.post("/admin/register", protect, authorize("admin"), registerStaff);
+router.post("/staff/login", loginStaff);
+
 router.get("/verify/:verificationToken", verifyEmail);
 router.get("/me", protect, getMe);
 router.put("/update", protect, upload.single("profilePic"), updateDetails);

@@ -101,14 +101,28 @@ export const createDonation = async (req, res, next) => {
 
     const donor = await User.findById(req.user.id);
 
+    if (req.body.bloodType && req.body.bloodType !== donor.bloodType) {
+      return next(
+        new ErrorResponse(
+          `You can only donate your registered blood type (${donor.bloodType})`,
+          400
+        )
+      );
+    }
+
+    const quantity = req.body.quantity || 1;
+
+    if (isNaN(quantity) || quantity <= 0) {
+      return next(new ErrorResponse(`Quantity must be a positive number`, 400));
+    }
+
     if (donor.lastDonationDate) {
       const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 2);
 
       if (new Date(donor.lastDonationDate) > threeMonthsAgo) {
         const nextDonationDate = new Date(donor.lastDonationDate);
-        nextDonationDate.setMonth(nextDonationDate.getMonth() + 3);
-
+        nextDonationDate.setMonth(nextDonationDate.getMonth() + 2);
         return next(
           new ErrorResponse(
             `You must wait until ${nextDonationDate.toLocaleDateString()} to donate again. ` +
@@ -121,14 +135,29 @@ export const createDonation = async (req, res, next) => {
       }
     }
 
-    const donation = await Donation.create(req.body);
+    // Create the donation record
+    const donation = await Donation.create({
+      ...req.body,
+      quantity: quantity,
+    });
 
+    // Update donor's last donation date
     donor.lastDonationDate = donation.donationDate;
     await donor.save();
 
+    // Update hospital's blood bank inventory
+    if (donor.bloodType && hospital.bloodBank.has(donor.bloodType)) {
+      hospital.bloodBank.set(
+        donor.bloodType,
+        hospital.bloodBank.get(donor.bloodType) + quantity
+      );
+      await hospital.save();
+    }
+
+    // Send notification
     await sendNotification({
       user: hospital.createdBy,
-      message: `New donation recorded for ${donor.name}`,
+      message: `New donation recorded for ${donor.name} (${donor.bloodType} x${quantity})`,
       type: "donation",
       relatedEntity: donation._id,
     });
@@ -136,10 +165,11 @@ export const createDonation = async (req, res, next) => {
     return res.status(201).json({
       success: true,
       data: donation,
+      bloodBankUpdated: !!donor.bloodType,
     });
   } catch (err) {
     console.error("Donation creation error:", err.message);
-    return next(err);
+    return next(new ErrorResponse(err.message, 500));
   }
 };
 
