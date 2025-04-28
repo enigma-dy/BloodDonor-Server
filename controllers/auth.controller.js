@@ -2,6 +2,7 @@ import ms from "ms";
 import ErrorResponse from "../utils/errorResponse.js";
 import sendEmail from "../services/email.service.js";
 import User from "../models/User.js";
+import crypto from "crypto";
 
 export const register = async (req, res, next) => {
   const { name, email, password, bloodType, phone, state, lga } = req.body;
@@ -250,6 +251,64 @@ export const updatePassword = async (req, res, next) => {
   }
 
   user.password = req.body.newPassword;
+  await user.save();
+
+  sendTokenResponse(user, 200, res);
+};
+
+export const forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return next(new ErrorResponse("There is no user with that email", 404));
+  }
+
+  const resetToken = user.getResetPasswordToken();
+  await user.save({ validateBeforeSave: false });
+
+  const resetUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/api/v1/auth/resetpassword/${resetToken}`;
+
+  const message = `You are receiving this email because you (or someone else) has requested the reset of a password. \n\n ${resetUrl}`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Password Reset Token",
+      message,
+    });
+
+    res.status(200).json({ success: true, data: "Email sent", resetUrl });
+  } catch (err) {
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(new ErrorResponse("Email could not be sent", 500));
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(req.params.resettoken)
+    .digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return next(new ErrorResponse("Invalid token", 400));
+  }
+
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
   await user.save();
 
   sendTokenResponse(user, 200, res);

@@ -3,12 +3,9 @@ import morgan from "morgan";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-// import mongoSanitize from "express-mongo-sanitize";
-// import xss from "xss-clean";
-// import hpp from "hpp";
+
 import path from "path";
 import { fileURLToPath } from "url";
-// import { init as initSocket } from "./socket.js";
 
 // Route files
 import authRoutes from "./routes/auth.routes.js";
@@ -26,40 +23,22 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Initialize socket.io
-// initSocket(app);
-
-// Body parser
 app.use(express.json());
 
-// Dev logging middleware
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// Set security headers
 app.use(helmet());
 
-// Enable CORS
-app.use(cors());
+app.use(cors({ origin: "*" }));
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
 });
 app.use(limiter);
 
-// Sanitize data
-// app.use(mongoSanitize());
-
-// Prevent XSS attacks
-// app.use(xss());
-
-// Prevent http param pollution
-// app.use(hpp());
-
-// Set static folder
 app.use(express.static(path.join(__dirname, "public")));
 
 // Mount routers

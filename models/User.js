@@ -55,6 +55,9 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
+
     lastDonationDate: Date,
     emailVerificationToken: String,
     emailVerificationTokenExpire: Date,
@@ -81,6 +84,19 @@ UserSchema.methods.getSignedJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE,
   });
+};
+
+UserSchema.methods.getResetPasswordToken = function () {
+  const resetToken = crypto.randomBytes(20).toString("hex");
+
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  this.resetPasswordExpire = Date.now() + 30 * 60 * 1000;
+
+  return resetToken;
 };
 
 UserSchema.methods.getEmailVerificationToken = function () {
