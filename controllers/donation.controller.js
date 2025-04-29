@@ -5,6 +5,7 @@ import Notification from "../models/Notification.js";
 import ErrorResponse from "../utils/errorResponse.js";
 import sendNotification from "../services/notification.service.js";
 import { DonationQueryBuilder } from "../utils/donationQueryBuilder.js";
+import mongoose from "mongoose";
 
 export const getDonations = async (req, res, next) => {
   try {
@@ -46,7 +47,7 @@ export const getDonations = async (req, res, next) => {
   }
 };
 
-export const getDonation = async (req, res, next) => {
+export const getDonationById = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id)
       .populate({
@@ -67,15 +68,9 @@ export const getDonation = async (req, res, next) => {
       );
     }
 
-    if (
-      donation.donor._id.toString() !== req.user.id &&
-      req.user.role !== "admin"
-    ) {
+    if (!donation.donor) {
       return next(
-        new ErrorResponse(
-          `User ${req.user.id} is not authorized to access this donation`,
-          401
-        )
+        new ErrorResponse(`Donor information missing for this donation`, 404)
       );
     }
 
@@ -84,6 +79,7 @@ export const getDonation = async (req, res, next) => {
       data: donation,
     });
   } catch (err) {
+    console.error(`Error getting donation ${req.params.id}:`, err);
     next(err);
   }
 };
@@ -175,7 +171,7 @@ export const createDonation = async (req, res, next) => {
 
 export const updateDonation = async (req, res, next) => {
   try {
-    let donation = await Donation.findById(req.params.id);
+    const donation = await Donation.findById(req.params.id);
 
     if (!donation) {
       return next(
@@ -183,35 +179,33 @@ export const updateDonation = async (req, res, next) => {
       );
     }
 
-    if (
-      donation.donor.toString() !== req.user.id &&
-      req.user.role !== "admin"
-    ) {
-      return next(
-        new ErrorResponse(
-          `User ${req.user.id} is not authorized to update this donation`,
-          401
-        )
-      );
-    }
-
-    donation = await Donation.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedDonation = await Donation.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (req.body.status === "completed") {
-      const hospital = await Hospital.findById(donation.hospital);
+      const hospital = await Hospital.findById(updatedDonation.hospital);
+      if (!hospital) {
+        return next(new ErrorResponse(`Hospital not found`, 404));
+      }
+
+      const currentQuantity =
+        hospital.bloodBank.get(updatedDonation.bloodType) || 0;
       hospital.bloodBank.set(
-        donation.bloodType,
-        hospital.bloodBank.get(donation.bloodType) + donation.quantity
+        updatedDonation.bloodType,
+        currentQuantity + updatedDonation.quantity
       );
       await hospital.save();
     }
 
     res.status(200).json({
       success: true,
-      data: donation,
+      data: updatedDonation,
     });
   } catch (err) {
     next(err);

@@ -1,9 +1,9 @@
 import express from "express";
 import {
   getDonations,
-  getDonation,
   createDonation,
   updateDonation,
+  getDonationById,
   deleteDonation,
 } from "../controllers/donation.controller.js";
 import { protect, authorize } from "../middlewares/auth.js";
@@ -18,7 +18,7 @@ router.route("/:hospitalId").post(protect, authorize("donor"), createDonation);
 
 router
   .route("/:id")
-  .get(protect, getDonation)
+  .get(getDonationById)
   .put(protect, authorize("donor", "admin"), updateDonation)
   .delete(protect, authorize("donor", "admin"), deleteDonation);
 
